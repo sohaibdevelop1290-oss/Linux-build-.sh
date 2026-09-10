@@ -2,14 +2,16 @@
 set -e
 
 echo "=========================================="
-echo " 1. Installing & Starting Docker Engine   "
+echo " Step 1: Docker Environment Setup         "
 echo "=========================================="
+# Install Docker and add current user to docker group
 sudo apt-get update -y
 sudo apt-get install -y docker.io curl jq
+sudo usermod -aG docker $USER
 sudo systemctl start docker || sudo service docker start
 
 echo "=========================================="
-echo " 2. Downloading Batocera Linux Source    "
+echo " Step 2: Download Batocera Sources        "
 echo "=========================================="
 if [ ! -d "batocera.linux" ]; then
     git clone https://github.com/batocera-linux/batocera.linux.git
@@ -17,14 +19,12 @@ fi
 
 cd batocera.linux
 
-echo "=========================================="
-echo " 3. Updating Buildroot Submodules         "
-echo "=========================================="
+# Init and update submodules (Buildroot)
 git submodule init
 git submodule update
 
 echo "=========================================="
-echo " 4. Injecting Device Tree & Kernel Source "
+echo " Step 3: Injecting Device Tree & Kernel   "
 echo "=========================================="
 mkdir -p board/oneplus/billie2
 if [ ! -d "board/oneplus/billie2/.git" ]; then
@@ -36,17 +36,19 @@ if [ ! -d "linux-custom/.git" ]; then
 fi
 
 echo "=========================================="
-echo " 5. Building Batocera Docker Environment  "
+echo " Step 4: Install Build Environment        "
 echo "=========================================="
+# Official command from Wiki Step 3
 make build-docker-image
 
 echo "=========================================="
-echo " 6. Compiling Batocera Image (sm6115)     "
+echo " Step 5: Build Image (sm6115)             "
 echo "=========================================="
+# Official syntax: make <arch>-build
 make sm6115-build
 
 echo "=========================================="
-echo " 7. Uploading Output Artifacts to GoFile  "
+echo " Step 6: Uploading Image to GoFile        "
 echo "=========================================="
 OUTPUT_DIR="output/sm6115/images"
 
@@ -58,8 +60,16 @@ if [ -d "$OUTPUT_DIR" ]; then
             RESPONSE=$(curl -s -F "file=@$FILE" "https://${SERVER}.gofile.io/contents/uploadfile")
             DOWNLOAD_LINK=$(echo $RESPONSE | jq -r '.data.downloadPage')
             echo "----------------------------------------"
+            echo " File Uploaded Successfully!"
             echo " Download Link: $DOWNLOAD_LINK"
             echo "----------------------------------------"
         fi
     done
+else
+    echo "Error: Output folder $OUTPUT_DIR not found!"
+    exit 1
 fi
+
+echo "=========================================="
+echo " Process Finished Successfully!           "
+echo "=========================================="
