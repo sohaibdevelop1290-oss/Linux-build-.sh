@@ -1,14 +1,23 @@
 #!/bin/bash
 set -e
 
+# Disable all interactive dpkg/apt prompts completely
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+export TZ=UTC
+
 echo "=========================================="
 echo " Step 1: Docker Environment Setup         "
 echo "=========================================="
-# Install Docker and add current user to docker group
+# Install Docker and add current user to docker group silently
 sudo apt-get update -y
-sudo apt-get install -y docker.io curl jq
-sudo usermod -aG docker $USER
-sudo systemctl start docker || sudo service docker start
+sudo -E apt-get install -y \
+  -o Dpkg::Options::="--force-confdef" \
+  -o Dpkg::Options::="--force-confold" \
+  docker.io curl jq
+
+sudo usermod -aG docker $USER || true
+sudo systemctl start docker || sudo service docker start || true
 
 echo "=========================================="
 echo " Step 2: Download Batocera Sources        "
@@ -73,3 +82,4 @@ fi
 echo "=========================================="
 echo " Process Finished Successfully!           "
 echo "=========================================="
+
